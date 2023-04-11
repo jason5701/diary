@@ -1,8 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@material-ui/core';
 import InputField from '@/components/InputField';
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  setDoc,
+  doc,
+} from 'firebase/firestore/lite';
+import { db } from '../../firebase';
 
-interface Trade {
+export interface ITrade {
+  ticker: string;
   tradeType: '' | 'buy' | 'sell';
   date: string;
   price: number;
@@ -11,21 +20,24 @@ interface Trade {
   reason: string;
 }
 
-interface TradeInputProps {
-  onSubmit: (trade: Trade) => void;
-}
-
-const TradeInput = ({ onSubmit }: TradeInputProps) => {
+const TradeInput = () => {
   const [tradeType, setTradeType] = useState('');
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(today);
-  const [price, setPrice] = useState('');
-  const [quantity, setQuantity] = useState('');
+  const [price, setPrice] = useState(0);
+  const [quantity, setQuantity] = useState(0);
   const [term, setTerm] = useState('');
   const [reason, setReason] = useState('');
+  const [amount, setAmount] = useState(0);
 
-  const handleSubmit = () => {
-    const trade: Trade = {
+  const [stocks, setStocks] = useState<{ value: string; label: string }[]>([
+    { value: '', label: '' },
+  ]);
+  const [selectedStock, setSelectedStock] = useState('');
+
+  const handleSubmit = async () => {
+    const trade: ITrade = {
+      ticker: selectedStock,
       tradeType: tradeType as '' | 'buy' | 'sell',
       date,
       price: Number(price),
@@ -42,20 +54,52 @@ const TradeInput = ({ onSubmit }: TradeInputProps) => {
     if (error !== '') {
       alert(error);
     } else {
-      if (window.confirm('등록하시겠습니까?')) {
-        onSubmit(trade);
+      if (window.confirm(`등록하시겠습니까?`)) {
+        console.log(`${selectedStock} is saved`);
+        const now = new Date().toISOString();
+        const ref = doc(db, 'members', 'jasoon5701');
+        await setDoc(doc(ref, 'stocks', now), trade);
         setTradeType('');
         setDate('');
-        setPrice('');
-        setQuantity('');
+        setPrice(0);
+        setQuantity(0);
         setTerm('');
         setReason('');
       } else return;
     }
   };
 
+  const docs = async () => {
+    const db = getFirestore();
+    const colRef = collection(db, 'stocks');
+    const docsSnap = await getDocs(colRef);
+
+    let arr: any = [];
+    docsSnap.forEach((doc) => {
+      arr.push({ value: doc.id, label: doc.data().name });
+    });
+
+    setStocks(arr);
+  };
+
+  useEffect(() => {
+    docs();
+  }, []);
+
+  useEffect(() => {
+    const sum = price * quantity;
+    setAmount(sum);
+  }, [price, quantity]);
+
   return (
     <div>
+      <InputField
+        label='주식'
+        value={selectedStock}
+        select
+        selectItems={stocks}
+        onChange={(e) => setSelectedStock(e.target.value)}
+      />
       <InputField
         label='매매종류'
         value={tradeType}
@@ -75,18 +119,18 @@ const TradeInput = ({ onSubmit }: TradeInputProps) => {
       <InputField
         label='가격'
         type='number'
-        value={price}
-        onChange={(e) => setPrice(e.target.value)}
+        value={String(price)}
+        onChange={(e) => setPrice(Number(e.target.value))}
       />
       <InputField
         label='수량'
         type='number'
-        value={quantity}
-        onChange={(e) => setQuantity(e.target.value)}
+        value={String(quantity)}
+        onChange={(e) => setQuantity(Number(e.target.value))}
       />
       <InputField
         label='기간'
-        value={tradeType}
+        value={term}
         select
         selectItems={[
           { value: 'short', label: '단기' },
@@ -99,6 +143,11 @@ const TradeInput = ({ onSubmit }: TradeInputProps) => {
         label='이유'
         value={reason}
         onChange={(e) => setReason(e.target.value)}
+      />
+      <InputField
+        label='총액'
+        value={String(amount)}
+        onChange={() => console.log(amount)}
       />
       <Button variant='contained' color='primary' onClick={handleSubmit}>
         등록

@@ -10,11 +10,17 @@ import {
 
 interface IInputFiled {
   label: string;
-  value: string;
+  value?: string;
   type?: string;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   select?: boolean;
   selectItems?: { value: string; label: string }[];
+  name?: string;
+  inputProps?: {
+    minLength?: number;
+    pattern?: string;
+  };
+  required?: boolean;
 }
 
 const InputField = ({
@@ -24,6 +30,9 @@ const InputField = ({
   selectItems = [],
   onChange,
   type,
+  name,
+  required = false,
+  inputProps = {},
 }: IInputFiled) => {
   const [selectedValue, setSelectedValue] = useState(value);
 
@@ -47,10 +56,13 @@ const InputField = ({
         </>
       ) : (
         <TextField
+          required={required}
+          name={name}
           type={type}
           label={label}
           value={value}
           onChange={onChange}
+          inputProps={inputProps}
         />
       )}
     </FormControl>

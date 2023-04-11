@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
-import './App.css';
-import { getDoc, doc, getDocs } from 'firebase/firestore/lite';
+import { useEffect, useContext } from 'react';
+import { getDoc, doc } from 'firebase/firestore/lite';
 import { db } from '../firebase';
-import TradeInput from '@/view/TradeInput';
+import Routes from '@/routes';
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from './auth/AuthProvider';
+import { AuthContext } from './auth/auth';
 
 function App() {
+  const { user } = useContext(AuthContext);
+
   const testFunc = async () => {
     const ref = doc(db, 'members', 'jasoon5701');
     const subRef = doc(ref, 'stocks', '017960');
@@ -15,13 +17,11 @@ function App() {
 
     if (refSnap.exists()) {
       const data = refSnap.data();
-      console.log(data);
     } else {
       console.log('no data');
     }
 
     if (subSnap.exists()) {
-      console.log(subSnap.data());
     } else console.log('no sub data');
   };
 
@@ -30,9 +30,11 @@ function App() {
   }, []);
 
   return (
-    <div className='App'>
-      <TradeInput onSubmit={(trade) => console.log(trade)} />
-    </div>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes />
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
